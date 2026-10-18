@@ -1,0 +1,19 @@
+{
+  "name": "fart-together",
+  "version": "1.0.0",
+  "description": "Co-op party game: up to 4 players fart together to steer a raft down a spiky river.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/sim.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "three": "0.160.0",
+    "ws": "^8.18.0"
+  }
+}

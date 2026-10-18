@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Fart Together</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💨</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+    { "imports": { "three": "/vendor/three/three.module.js" } }
+  </script>
+</head>
+<body>
+  <canvas id="view"></canvas>
+
+  <!-- Main menu -->
+  <section id="menu" class="screen">
+    <div class="card">
+      <h1>💨 Fart Together</h1>
+      <p class="sub">Kentut sama-sama, kemudi rakit, elak duri! (1–4 pemain)</p>
+
+      <label>Nama kau
+        <input id="name" maxlength="14" placeholder="Nama" />
+      </label>
+
+      <div class="label">Pilih watak</div>
+      <div id="chars" class="chars"></div>
+
+      <div class="row">
+        <button id="btn-create" class="primary">Cipta Bilik Online</button>
+      </div>
+      <div class="row">
+        <input id="code" maxlength="4" placeholder="KOD" class="code-input" />
+        <button id="btn-join">Sertai</button>
+      </div>
+      <div class="divider"><span>atau</span></div>
+      <div class="row">
+        <button id="btn-local">Main Satu Peranti (sampai 4 orang)</button>
+      </div>
+      <p id="menu-error" class="error"></p>
+    </div>
+  </section>
+
+  <!-- Online lobby -->
+  <section id="lobby" class="screen hidden">
+    <div class="card">
+      <h2>Bilik <span id="lobby-code" class="code"></span></h2>
+      <p class="sub">Kongsi kod atau link ni kat kawan:</p>
+      <div class="row">
+        <input id="share-link" readonly />
+        <button id="btn-copy">Salin</button>
+      </div>
+      <ul id="lobby-players" class="players"></ul>
+      <p id="lobby-wait" class="sub"></p>
+      <div class="row">
+        <button id="btn-start" class="primary">Mula!</button>
+        <button id="btn-leave">Keluar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Local setup -->
+  <section id="local" class="screen hidden">
+    <div class="card">
+      <h2>Main Satu Peranti</h2>
+      <p class="sub">Berapa orang?</p>
+      <div id="local-count" class="seg"></div>
+      <div id="local-players" class="local-players"></div>
+      <div class="row">
+        <button id="btn-local-start" class="primary">Mula!</button>
+        <button id="btn-local-back">Balik</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- In-game HUD -->
+  <section id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="pill" id="hud-time">0:00.0</div>
+      <div class="pill" id="hud-cp">Checkpoint 0</div>
+      <div class="pill" id="hud-deaths">💥 0</div>
+      <button class="pill pill-btn" id="btn-quit">✕</button>
+    </div>
+    <div id="hud-gas" class="hud-gas"></div>
+    <div id="big-text" class="big-text"></div>
+    <div id="help" class="help"></div>
+    <div id="touch" class="touch hidden">
+      <button data-k="l" class="tbtn">⟲</button>
+      <button data-k="r" class="tbtn">⟳</button>
+      <button data-k="f" class="tbtn fart">💨</button>
+    </div>
+  </section>
+
+  <!-- Finish -->
+  <section id="finish" class="screen hidden">
+    <div class="card">
+      <h2>🏁 Sampai!</h2>
+      <p id="finish-stats" class="stats"></p>
+      <div class="row">
+        <button id="btn-again" class="primary">Main Lagi</button>
+        <button id="btn-menu">Menu</button>
+      </div>
+      <p id="finish-wait" class="sub"></p>
+    </div>
+  </section>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

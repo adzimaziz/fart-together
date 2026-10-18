@@ -1,0 +1,192 @@
+:root {
+  --bg: #8fd3ff;
+  --card: #fffaf0;
+  --ink: #3a2a1a;
+  --muted: #8a7560;
+  --pink: #e45bb5;
+  --green: #7cc84a;
+  --orange: #f4a64b;
+  --line: #ead9c0;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  user-select: none;
+}
+
+#view {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hidden { display: none !important; }
+
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(40, 120, 170, 0.35);
+  overflow-y: auto;
+}
+
+.card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--card);
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow: 0 10px 0 #d8c3a3, 0 18px 40px rgba(0, 0, 0, 0.25);
+  margin: auto;
+}
+
+h1, h2 { margin: 0 0 6px; text-align: center; }
+h1 { font-size: 30px; }
+.sub { margin: 4px 0 14px; text-align: center; color: var(--muted); font-size: 14px; }
+.label, label { display: block; font-weight: bold; font-size: 14px; margin: 10px 0 6px; }
+
+input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  font-size: 16px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--ink);
+  margin-top: 4px;
+}
+
+.code-input { text-transform: uppercase; letter-spacing: 4px; text-align: center; font-weight: bold; }
+
+button {
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  background: #f1e3cc;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 4px 0 #d5bf9d;
+  white-space: nowrap;
+}
+button:active { transform: translateY(3px); box-shadow: 0 1px 0 #d5bf9d; }
+button.primary { background: var(--green); color: #fff; box-shadow: 0 4px 0 #5a9a31; }
+button:disabled { opacity: 0.5; cursor: default; }
+
+.row { display: flex; gap: 10px; margin-top: 12px; }
+.row > * { flex: 1; margin-top: 0; }
+.row > input + button { flex: 0 0 auto; }
+
+.divider { text-align: center; margin: 16px 0 4px; color: var(--muted); font-size: 13px; position: relative; }
+.divider::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px dashed var(--line); }
+.divider span { background: var(--card); padding: 0 10px; position: relative; }
+
+.error { color: #c2334d; text-align: center; min-height: 1em; margin: 10px 0 0; font-size: 14px; }
+
+.chars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.char {
+  padding: 8px 4px;
+  border-radius: 12px;
+  background: #fff;
+  border: 3px solid var(--line);
+  text-align: center;
+  font-size: 12px;
+  box-shadow: none;
+}
+.char .emoji { font-size: 28px; display: block; }
+.char.on { border-color: var(--pink); background: #fff0f8; }
+.char:active { transform: none; }
+
+.code { color: var(--pink); letter-spacing: 3px; }
+
+.players { list-style: none; padding: 0; margin: 14px 0; }
+.players li {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 12px; background: #fff; border: 2px solid var(--line); margin-bottom: 6px;
+}
+.players li .emoji { font-size: 24px; }
+.players li .tag { margin-left: auto; font-size: 12px; color: var(--muted); }
+.players li.empty { color: var(--muted); border-style: dashed; background: transparent; }
+
+.seg { display: flex; gap: 8px; }
+.seg button { flex: 1; }
+.seg button.on { background: var(--pink); color: #fff; box-shadow: 0 4px 0 #b13f8a; }
+
+.local-players { margin-top: 12px; display: grid; gap: 8px; }
+.lp { background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 10px; }
+.lp-head { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 14px; }
+.lp-keys { font-size: 12px; color: var(--muted); font-weight: normal; }
+.lp .chars { margin-top: 6px; }
+.lp .char { padding: 4px; }
+.lp .char .emoji { font-size: 22px; }
+
+/* HUD */
+#hud { position: fixed; inset: 0; pointer-events: none; }
+.hud-top {
+  position: absolute; top: 10px; left: 0; right: 0;
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 0 16px;
+}
+.pill {
+  background: rgba(255, 250, 240, 0.92); padding: 6px 12px; border-radius: 999px;
+  font-weight: bold; font-size: 15px; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.15);
+}
+.pill-btn { pointer-events: auto; padding: 6px 12px; }
+.hud-gas {
+  position: absolute; top: 52px; left: 0; right: 0;
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 0 16px;
+}
+.gas {
+  background: rgba(255, 250, 240, 0.9); border-radius: 10px; padding: 4px 8px; font-size: 12px; font-weight: bold;
+  min-width: 84px;
+}
+.gas .bar { height: 6px; background: #e6d8c3; border-radius: 4px; overflow: hidden; margin-top: 3px; }
+.gas .bar i { display: block; height: 100%; background: #9bd42a; width: 100%; }
+
+.big-text {
+  position: absolute; top: 34%; left: 0; right: 0; text-align: center;
+  font-size: 64px; font-weight: 900; color: #fff;
+  text-shadow: 0 4px 0 var(--pink), 0 8px 18px rgba(0, 0, 0, 0.3);
+  opacity: 0; transition: opacity 0.2s;
+}
+.big-text.show { opacity: 1; }
+
+.help {
+  position: absolute; bottom: 12px; left: 12px; right: 12px; text-align: center;
+  font-size: 12px; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.touch {
+  position: absolute; bottom: 20px; left: 16px; right: 16px;
+  display: flex; gap: 12px; pointer-events: none;
+}
+.tbtn {
+  pointer-events: auto; width: 78px; height: 78px; border-radius: 50%;
+  font-size: 32px; background: rgba(255, 250, 240, 0.85); padding: 0;
+}
+.tbtn.fart { margin-left: auto; width: 100px; height: 100px; font-size: 44px; background: rgba(170, 225, 60, 0.92); }
+.tbtn.down { transform: translateY(3px) scale(0.95); }
+
+.stats { text-align: center; font-size: 18px; line-height: 1.6; }
+
+@media (max-width: 420px) {
+  h1 { font-size: 24px; }
+  .big-text { font-size: 48px; }
+  .pill { font-size: 13px; }
+}

@@ -3,10 +3,10 @@
 // Online mode: the single local player can use any of the keymaps, any gamepad and touch.
 
 export const KEYMAPS = [
-  { l: ['KeyA'], r: ['KeyD'], f: ['KeyW', 'KeyS'], label: 'A / D putar, W kentut' },
-  { l: ['ArrowLeft'], r: ['ArrowRight'], f: ['ArrowUp', 'ArrowDown'], label: '← / → putar, ↑ kentut' },
-  { l: ['KeyJ'], r: ['KeyL'], f: ['KeyI', 'KeyK'], label: 'J / L putar, I kentut' },
-  { l: ['Numpad4', 'KeyF'], r: ['Numpad6', 'KeyH'], f: ['Numpad8', 'KeyT', 'KeyG'], label: 'F / H putar, T kentut (atau numpad 4/6/8)' },
+  { l: ['KeyA'], r: ['KeyD'], f: ['KeyW', 'KeyS'], label: 'A / D gerak, W kentut' },
+  { l: ['ArrowLeft'], r: ['ArrowRight'], f: ['ArrowUp', 'ArrowDown'], label: '← / → gerak, ↑ kentut' },
+  { l: ['KeyJ'], r: ['KeyL'], f: ['KeyI', 'KeyK'], label: 'J / L gerak, I kentut' },
+  { l: ['Numpad4', 'KeyF'], r: ['Numpad6', 'KeyH'], f: ['Numpad8', 'KeyT', 'KeyG'], label: 'F / H gerak, T kentut (atau numpad 4/6/8)' },
 ];
 
 const down = new Set();

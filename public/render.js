@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { sampleAt, obstaclePose } from '/shared/track.js';
-import { RAFT_R } from '/shared/sim.js';
+import { RAFT_R, SEAT_R } from '/shared/sim.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // 2D sim angle -> three.js rotation.y (sim y maps to world z).
 const rotY = (a) => -a;
@@ -188,10 +189,12 @@ class Puffs {
 export class Renderer {
   constructor(canvas, track) {
     this.track = track;
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Phones have high-DPI screens: cap the pixel ratio and skip MSAA there to keep 60fps.
+    const dpr = window.devicePixelRatio || 1;
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: dpr < 2, powerPreference: 'high-performance' });
+    this.renderer.setPixelRatio(Math.min(dpr, 1.5));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     this.scene = new THREE.Scene();
@@ -334,30 +337,28 @@ export class Renderer {
     scene.add(spikeMesh, stripMesh);
 
     // Obstacles.
+    const spikeMat = lambert(COLORS.spike);
     this.obstacleMeshes = tr.obstacles.map((ob) => {
       const g = new THREE.Group();
       const len = ob.half * 2;
       const bar = new THREE.Mesh(new THREE.BoxGeometry(len, 1.1, 1.0), lambert(COLORS.pink));
       bar.castShadow = true;
       g.add(bar);
-      const cg = new THREE.ConeGeometry(0.26, 0.8, 8);
+      // All spikes of one obstacle are merged into a single mesh (far fewer draw calls).
+      const cones = [];
+      const cone = (x, y, z, rx, rz) => {
+        const c = new THREE.ConeGeometry(0.26, 0.8, 8);
+        c.rotateX(rx); c.rotateZ(rz); c.translate(x, y, z);
+        cones.push(c);
+      };
       for (let x = -ob.half + 0.4; x <= ob.half - 0.3; x += 0.8) {
-        for (const z of [-1, 1]) {
-          const c = new THREE.Mesh(cg, lambert(COLORS.spike));
-          c.position.set(x, 0, z * 0.85);
-          c.rotation.x = z * Math.PI / 2;
-          g.add(c);
-        }
-        const top = new THREE.Mesh(cg, lambert(COLORS.spike));
-        top.position.set(x, 0.85, 0);
-        g.add(top);
+        cone(x, 0, 0.85, Math.PI / 2, 0);
+        cone(x, 0, -0.85, -Math.PI / 2, 0);
+        cone(x, 0.85, 0, 0, 0);
       }
-      for (const end of [-1, 1]) {
-        const c = new THREE.Mesh(cg, lambert(COLORS.spike));
-        c.position.set(end * (ob.half + 0.35), 0, 0);
-        c.rotation.z = -end * Math.PI / 2;
-        g.add(c);
-      }
+      cone(ob.half + 0.35, 0, 0, 0, -Math.PI / 2);
+      cone(-ob.half - 0.35, 0, 0, 0, Math.PI / 2);
+      g.add(new THREE.Mesh(mergeGeometries(cones), spikeMat));
       if (ob.type === 'spinner') {
         const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 2.2, 14), lambert(0xffffff));
         hub.position.y = -0.4;
@@ -473,8 +474,9 @@ export class Renderer {
         c = { group, char: p.char, name: p.name };
         this.charMeshes.set(p.slot, c);
       }
-      c.group.position.set(Math.cos(p.seat) * p.seatR, 0.3, Math.sin(p.seat) * p.seatR);
-      c.group.rotation.y = rotY(p.f);
+      // Sit on the rim at angle p.pos, always facing the centre of the raft.
+      c.group.position.set(Math.cos(p.pos) * SEAT_R, 0.3, Math.sin(p.pos) * SEAT_R);
+      c.group.rotation.y = rotY(p.pos + Math.PI);
       c.player = p;
     }
     for (const [slot, c] of this.charMeshes) {
@@ -488,9 +490,9 @@ export class Renderer {
     if (ev.type === 'fart') {
       const p = state.players.find((q) => q.slot === ev.slot);
       if (!p) return;
-      const fa = r.a + p.f;
-      const sx = r.x + Math.cos(r.a + p.seat) * p.seatR - Math.cos(fa) * 0.7;
-      const sz = r.y + Math.sin(r.a + p.seat) * p.seatR - Math.sin(fa) * 0.7;
+      const fa = r.a + p.pos + Math.PI; // facing direction (towards the centre)
+      const sx = r.x + Math.cos(r.a + p.pos) * (SEAT_R + 0.7);
+      const sz = r.y + Math.sin(r.a + p.pos) * (SEAT_R + 0.7);
       const pos = new THREE.Vector3(sx, 0.8, sz);
       for (let i = 0; i < 14; i++) {
         const sp = 4 + Math.random() * 5;

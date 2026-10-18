@@ -5,12 +5,13 @@ import { Game, MAX_PLAYERS, CHARACTERS } from './shared/sim.js';
 
 const PORT = process.env.PORT || 3000;
 const TICK = 1 / 60;
-const SEND_EVERY = 3; // ticks -> 20 snapshots per second
+const SEND_EVERY = 2; // ticks -> 30 snapshots per second
 
 const app = express();
 app.use(express.static('public'));
 app.use('/shared', express.static('shared'));
 app.use('/vendor/three', express.static('node_modules/three/build'));
+app.use('/vendor/three-addons', express.static('node_modules/three/examples/jsm'));
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });

@@ -1,5 +1,5 @@
 import { Renderer, CHAR_INFO } from './render.js';
-import { Game, CHARACTERS, MAX_PLAYERS } from '/shared/sim.js';
+import { Game, CHARACTERS, MAX_PLAYERS, FART_COOLDOWN, moveSeat } from '/shared/sim.js';
 import { buildTrack } from '/shared/track.js';
 import { KEYMAPS, localInput, onlineInput, bindTouch, isTouchDevice } from './input.js';
 import { unlockAudio, playFart, playPop, playBeep, playCheckpoint, playFinish } from './audio.js';
@@ -70,7 +70,10 @@ $('code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn-joi
 
 // ---------- online ----------
 let ws = null;
-let buffer = [];        // [{at, s}] snapshots for interpolation
+let buffer = [];        // snapshots, oldest first, for interpolation
+let clockOffset = null; // local clock (s) minus server sim time, filtered for jitter
+let myOff = 0;          // locally predicted rim offset of my own character
+let myCd = 0;           // locally predicted fart cooldown
 let lobby = null;
 let lastSent = '';
 let lastSentAt = 0;
@@ -99,6 +102,8 @@ function connect(firstMsg) {
     } else if (msg.type === 'joined') {
       mode = 'online';
       mySlot = msg.slot;
+      myOff = 0;
+      myCd = 0;
       buffer = [];
       history.replaceState(null, '', `?room=${msg.code}`);
     } else if (msg.type === 'lobby') {
@@ -154,12 +159,19 @@ $('btn-copy').onclick = async () => {
 };
 
 function onSnapshot(s, events) {
-  const at = performance.now();
-  if (buffer.length && s.t < buffer[buffer.length - 1].s.t) buffer = []; // new round started
-  buffer.push({ at, s });
-  if (buffer.length > 30) buffer.shift();
-  // Events refer to the newest snapshot; play them as they arrive.
-  for (const ev of events) handleEvent(ev, s);
+  const nowS = performance.now() / 1000;
+  if (buffer.length && s.t < buffer[buffer.length - 1].t) { buffer = []; clockOffset = null; } // new round
+  // Track the smallest observed delay; packets that arrive late don't drag the clock.
+  const off = nowS - s.t;
+  if (clockOffset === null || off < clockOffset) clockOffset = off;
+  else clockOffset += (off - clockOffset) * 0.01;
+  buffer.push(s);
+  if (buffer.length > 40) buffer.shift();
+  for (const ev of events) {
+    // My own farts were already shown the moment I pressed the button.
+    if (ev.type === 'fart' && ev.slot === mySlot) continue;
+    handleEvent(ev, s);
+  }
 }
 
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -170,16 +182,19 @@ const lerpAngle = (a, b, k) => {
   return a + d * k;
 };
 
-// Render ~120ms in the past and interpolate between snapshots for smooth motion.
+// Render slightly in the past (in server time) and interpolate between snapshots.
+const INTERP_DELAY = 0.07;
 function interpolated() {
   if (!buffer.length) return null;
-  const rt = performance.now() - 120;
+  const rt = performance.now() / 1000 - clockOffset - INTERP_DELAY;
   let i = buffer.length - 1;
-  while (i > 0 && buffer[i - 1].at > rt) i--;
-  if (i === 0) return buffer[0].s;
-  const A = buffer[i - 1], B = buffer[i];
-  const k = Math.max(0, Math.min(1, (rt - A.at) / (B.at - A.at || 1)));
-  const a = A.s, b = B.s;
+  while (i > 0 && buffer[i - 1].t > rt) i--;
+  let a, b, k;
+  if (i === 0) { a = b = buffer[0]; k = 0; }
+  else {
+    a = buffer[i - 1]; b = buffer[i];
+    k = Math.max(0, Math.min(1, (rt - a.t) / (b.t - a.t || 1)));
+  }
   const prev = new Map(a.players.map((p) => [p.slot, p]));
   return {
     ...b,
@@ -194,13 +209,33 @@ function interpolated() {
     },
     players: b.players.map((p) => {
       const q = prev.get(p.slot);
-      return q ? { ...p, f: lerpAngle(q.f, p.f, k), seat: lerpAngle(q.seat, p.seat, k), cd: lerp(q.cd, p.cd, k) } : p;
+      return q ? { ...p, pos: lerpAngle(q.pos, p.pos, k), cd: lerp(q.cd, p.cd, k) } : p;
     }),
   };
 }
 
-function sendInput() {
-  const inp = onlineInput();
+// Client-side prediction for my own character so moving and farting feel instant.
+function predictSelf(state, inp, dt) {
+  const latest = buffer[buffer.length - 1];
+  const me = latest?.players.find((p) => p.slot === mySlot);
+  if (!me) return state;
+  const serverOff = me.pos - me.seat;
+  myOff = moveSeat(myOff, inp, dt, latest.players.length);
+  // Ease towards the server when idle; snap if we drifted far (e.g. a respawn).
+  if (Math.abs(myOff - serverOff) > 0.8) myOff = serverOff;
+  else if (!inp.l && !inp.r) myOff += (serverOff - myOff) * Math.min(1, dt * 4);
+
+  myCd = Math.max(0, myCd - dt);
+  const players = state.players.map((p) => (p.slot === mySlot ? { ...p, pos: p.seat + myOff, cd: myCd } : p));
+  const out = { ...state, players };
+  if (inp.f && myCd <= 0 && state.phase === 'racing' && !state.raft.dead) {
+    myCd = FART_COOLDOWN;
+    handleEvent({ type: 'fart', slot: mySlot }, out);
+  }
+  return out;
+}
+
+function sendInput(inp) {
   const key = `${+inp.l}${+inp.r}${+inp.f}`;
   const now = performance.now();
   if (key !== lastSent || now - lastSentAt > 200) {
@@ -281,7 +316,7 @@ function updateHud(s) {
   s.players.forEach((p, i) => {
     const el = gas.children[i];
     el.querySelector('span').textContent = `${CHAR_INFO[p.char].emoji} ${p.name}`;
-    el.querySelector('i').style.width = `${Math.round((1 - p.cd / 0.55) * 100)}%`;
+    el.querySelector('i').style.width = `${Math.round((1 - p.cd / FART_COOLDOWN) * 100)}%`;
     el.style.outline = mode === 'online' && p.slot === mySlot ? '2px solid #e45bb5' : '';
   });
 
@@ -311,7 +346,7 @@ function showHelp() {
   if (mode === 'local') {
     $('help').textContent = KEYMAPS.slice(0, localGame.players.filter(Boolean).length).map((k, i) => `P${i + 1}: ${k.label}`).join('  •  ');
   } else {
-    $('help').textContent = touchUi ? '' : 'A/D atau ←/→ putar badan  •  W / ↑ / Space kentut  •  Kentut tolak rakit ke arah watak pandang!';
+    $('help').textContent = touchUi ? '' : 'A/D atau ←/→ gerak kiri/kanan  •  W / ↑ / Space kentut  •  Kentut tolak rakit ke arah bertentangan!';
   }
 }
 
@@ -361,8 +396,10 @@ function frame(now) {
     }
     current = localGame.snapshot();
   } else if (mode === 'online') {
-    sendInput();
+    const inp = onlineInput();
+    sendInput(inp);
     current = interpolated();
+    if (current) current = predictSelf(current, inp, dt);
   } else {
     current = null;
   }

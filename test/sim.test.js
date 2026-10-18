@@ -19,7 +19,6 @@ import { Game } from '../shared/sim.js';
   let t = 0;
   while (g.phase !== 'finished' && t < 400) {
     g.raft.shield = 1e9;
-    g.setInput(0, { f: true });
     g.step(1 / 60);
     t += 1 / 60;
   }
@@ -36,7 +35,7 @@ import { Game } from '../shared/sim.js';
   const before = { vx: g.raft.vx, vy: g.raft.vy };
   g.setInput(0, { f: true });
   g.step(1 / 60);
-  const fa = g.raft.a + g.players[0].f;
+  const fa = g.raft.a + g.players[0].seat + g.players[0].off + Math.PI;
   const dv = (g.raft.vx - before.vx) * Math.cos(fa) + (g.raft.vy - before.vy) * Math.sin(fa);
   assert(dv > 2, 'fart adds velocity along facing direction');
 }
@@ -46,6 +45,10 @@ import { Game } from '../shared/sim.js';
   const g = new Game();
   for (let i = 0; i < 4; i++) g.addPlayer(i, 'P' + i, 'capy');
   assert.equal(g.snapshot().players.length, 4);
+  // Sliding is clamped to each player's own slice of the rim.
+  for (let i = 0; i < 120; i++) { g.setInput(0, { l: true }); g.step(1 / 60); }
+  assert(g.players[0].off <= Math.PI / 4, 'player stays in own range');
+  assert(g.players[0].off > 0.5, 'player can slide');
   g.removePlayer(2);
   assert.equal(g.snapshot().players.length, 3);
 }

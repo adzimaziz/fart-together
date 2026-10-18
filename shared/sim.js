@@ -6,17 +6,30 @@ export const MAX_PLAYERS = 4;
 export const CHARACTERS = ['frog', 'hippo', 'bear', 'capy'];
 
 export const RAFT_R = 2.4;
-const SEAT_R = 1.45;
+export const SEAT_R = 1.45;
+export const MOVE_SPEED = 2.4; // rad/s around the rim
+export const FART_COOLDOWN = 0.55;
 const FART_IMPULSE = 3.4;
-const FART_COOLDOWN = 0.55;
-const INERTIA = 3.0;
-const TURN_SPEED = 3.6;
 const CURRENT = 4.2;
 const WATER_DRAG = 0.9;
 const ANG_DRAG = 1.4;
 const COUNTDOWN = 3;
 const DEAD_TIME = 1.8;
 const SPAWN_SHIELD = 1.5;
+
+// How far (radians) each player may slide either side of their home seat:
+// everyone gets an equal slice of the rim, with a small gap to the neighbours.
+export function seatRange(n) {
+  return n <= 1 ? Infinity : Math.PI / n - 0.14;
+}
+
+// Moving "right" from the character's own point of view (it always faces the centre)
+// goes clockwise from above, i.e. towards a smaller rim angle.
+export function moveSeat(off, inp, dt, n) {
+  const range = seatRange(n);
+  const v = off + ((inp.l ? 1 : 0) - (inp.r ? 1 : 0)) * MOVE_SPEED * dt;
+  return Math.max(-range, Math.min(range, v));
+}
 
 export class Game {
   constructor() {
@@ -45,12 +58,12 @@ export class Game {
       a: Math.atan2(sm.ty, sm.tx), w: 0,
       dead: false, deadT: 0, shield: SPAWN_SHIELD, si: Math.round(s),
     };
-    for (const p of this.players) if (p) { p.f = 0; p.cd = 0; }
+    for (const p of this.players) if (p) { p.off = 0; p.cd = 0; }
   }
 
   addPlayer(slot, name, char) {
     this.players[slot] = {
-      slot, name, char, f: 0, cd: 0, seat: 0,
+      slot, name, char, off: 0, cd: 0, seat: 0,
       input: { l: false, r: false, f: false, tap: false },
     };
     this.layoutSeats();
@@ -67,7 +80,7 @@ export class Game {
     const base = n === 2 ? Math.PI / 2 : Math.PI / 4;
     list.forEach((p, k) => {
       p.seat = base + (k * 2 * Math.PI) / n;
-      p.seatR = n === 1 ? 0 : SEAT_R;
+      p.off = moveSeat(p.off, {}, 0, n);
     });
   }
 
@@ -114,10 +127,11 @@ export class Game {
     this.t += dt;
     const r = this.raft;
 
-    // Players can always turn on the spot, even during the countdown.
+    // Players can always slide around the rim, even during the countdown.
+    const n = this.players.filter(Boolean).length;
     for (const p of this.players) {
       if (!p) continue;
-      p.f += ((p.input.r ? 1 : 0) - (p.input.l ? 1 : 0)) * TURN_SPEED * dt;
+      p.off = moveSeat(p.off, p.input, dt, n);
       p.cd = Math.max(0, p.cd - dt);
     }
 
@@ -142,19 +156,17 @@ export class Game {
       return;
     }
 
-    // Farts: an impulse pushing the raft the way the character faces, applied at the seat.
+    // Farts: everyone faces the centre with their butt over the edge, so a fart pushes
+    // the raft from that side towards the opposite side.
     if (this.phase === 'racing') {
       for (const p of this.players) {
         if (!p) continue;
         if ((p.input.f || p.input.tap) && p.cd <= 0) {
           p.input.tap = false;
           p.cd = FART_COOLDOWN;
-          const fa = r.a + p.f;
-          const fx = Math.cos(fa) * FART_IMPULSE, fy = Math.sin(fa) * FART_IMPULSE;
-          const rx = Math.cos(r.a + p.seat) * p.seatR, ry = Math.sin(r.a + p.seat) * p.seatR;
-          r.vx += fx;
-          r.vy += fy;
-          r.w += (rx * fy - ry * fx) / INERTIA;
+          const fa = r.a + p.seat + p.off + Math.PI;
+          r.vx += Math.cos(fa) * FART_IMPULSE;
+          r.vy += Math.sin(fa) * FART_IMPULSE;
           this.emit({ type: 'fart', slot: p.slot });
         }
       }
@@ -241,7 +253,7 @@ export class Game {
       finishTime: this.finishTime,
       raft: { x: r.x, y: r.y, a: r.a, dead: r.dead, shield: r.shield, si: r.si },
       players: this.players.filter(Boolean).map((p) => ({
-        slot: p.slot, name: p.name, char: p.char, f: p.f, seat: p.seat, seatR: p.seatR, cd: p.cd,
+        slot: p.slot, name: p.name, char: p.char, pos: p.seat + p.off, seat: p.seat, cd: p.cd,
       })),
     };
   }

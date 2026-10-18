@@ -53,4 +53,13 @@ import { Game } from '../shared/sim.js';
   assert.equal(g.snapshot().players.length, 3);
 }
 
+
+
+// 5. Every obstacle leaves a gap a steadily drifting raft can get through often enough.
+{
+  const { passability } = await import('./passable.js');
+  for (const r of passability()) {
+    assert(r.best >= 0.45, `obstacle at s=${r.s} (${r.types}) is too hard to pass: ${(r.best * 100).toFixed(0)}%`);
+  }
+}
 console.log('sim tests passed');

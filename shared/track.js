@@ -2,7 +2,7 @@
 // Coordinates are 2D (x, y). The renderer maps y -> three.js z.
 
 export const TRACK_DEF = {
-  width: 14,
+  width: 16,
   points: [
     [0, 30], [0, -30], [8, -70], [26, -105], [24, -145], [4, -175],
     [-20, -205], [-26, -245], [-12, -285], [0, -325], [2, -370], [0, -410],
@@ -16,17 +16,19 @@ export const TRACK_DEF = {
     { s0: 310, s1: 350, side: -1 },
     { s0: 360, s1: 400, side: 1 },
   ],
+  // Every obstacle must leave a real gap; test/passable.js checks this.
   obstacles: [
-    { type: 'spinner', s: 55, off: 0, half: 4.2, speed: 0.8, phase: 0 },
-    { type: 'slider', s: 92, amp: 3.6, half: 2.4, speed: 1.0, phase: 0 },
-    { type: 'spinner', s: 120, off: 2.5, half: 3.6, speed: -1.1, phase: 1 },
-    { type: 'spinner', s: 178, off: -3.4, half: 2.8, speed: 1.4, phase: 0 },
-    { type: 'spinner', s: 178, off: 3.4, half: 2.8, speed: -1.4, phase: Math.PI / 2 },
-    { type: 'slider', s: 212, amp: 4, half: 2.2, speed: 1.4, phase: 1 },
-    { type: 'spinner', s: 248, off: 0, half: 4.4, speed: 0.75, phase: 2 },
-    { type: 'slider', s: 318, amp: 3.6, half: 2.2, speed: 1.6, phase: 0 },
-    { type: 'slider', s: 334, amp: 3.6, half: 2.2, speed: 1.6, phase: Math.PI },
-    { type: 'spinner', s: 372, off: 0, half: 4.2, speed: -1.0, phase: 0.5 },
+    { type: 'spinner', s: 55, off: 0, half: 3.8, speed: 0.7, phase: 0 },
+    { type: 'slider', s: 92, amp: 4, half: 2.2, speed: 0.9, phase: 0 },
+    { type: 'spinner', s: 120, off: 3, half: 3.4, speed: -1.0, phase: 1 },
+    // Mirrored pair: both bars line up with the flow at the same moment, opening the lane.
+    { type: 'spinner', s: 180, off: -5.5, half: 2.6, speed: 0.8, phase: 0 },
+    { type: 'spinner', s: 180, off: 5.5, half: 2.6, speed: -0.8, phase: Math.PI },
+    { type: 'slider', s: 214, amp: 4.4, half: 2.0, speed: 1.2, phase: 1 },
+    { type: 'spinner', s: 250, off: 0, half: 3.8, speed: 0.65, phase: 2 },
+    { type: 'slider', s: 316, amp: 4, half: 2.0, speed: 1.3, phase: 0 },
+    { type: 'slider', s: 336, amp: 4, half: 2.0, speed: 1.3, phase: Math.PI },
+    { type: 'spinner', s: 374, off: 0, half: 3.8, speed: -0.8, phase: 0.5 },
   ],
   checkpoints: [0, 145, 290],
   finishBack: 30, // finish line sits this far before the end of the river

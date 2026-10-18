@@ -5,7 +5,7 @@ import { buildTrack, sampleAt, isSpiky, obstaclePose } from './track.js';
 export const MAX_PLAYERS = 4;
 export const CHARACTERS = ['frog', 'hippo', 'bear', 'capy'];
 
-export const RAFT_R = 2.4;
+export const RAFT_R = 2.3;
 export const SEAT_R = 1.45;
 export const MOVE_SPEED = 2.4; // rad/s around the rim
 export const FART_COOLDOWN = 0.55;
